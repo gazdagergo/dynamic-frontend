@@ -278,14 +278,12 @@
             },
 
             async streamClaude() {
-                console.log('🚀 Starting stream...');
                 const contentDiv = this.addMessage('assistant', '', true);
                 let fullResponse = '';
                 let streamComplete = false;
                 let buffer = ''; // Buffer for incomplete lines
 
                 try {
-                    console.log('📡 Fetching /api/chat...');
                     const response = await fetch('/api/chat', {
                         method: 'POST',
                         headers: {
@@ -299,8 +297,6 @@
                         })
                     });
 
-                    console.log('✅ Response received, status:', response.status);
-
                     if (!response.ok) {
                         const error = await response.json();
                         throw new Error(error.error?.message || 'API request failed');
@@ -308,15 +304,11 @@
 
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
-                    console.log('📖 Starting to read stream...');
 
-                    let chunkCount = 0;
                     while (true) {
                         const { done, value } = await reader.read();
-                        chunkCount++;
 
                         if (done) {
-                            console.log('✅ Stream done after', chunkCount, 'chunks');
                             streamComplete = true;
                             break;
                         }
@@ -332,45 +324,37 @@
                             if (line.startsWith('data: ')) {
                                 const data = line.slice(6).trim();
                                 if (data === '[DONE]') {
-                                    console.log('🏁 Received [DONE] signal');
                                     streamComplete = true;
-                                    break; // Exit the for loop
+                                    break;
                                 }
 
-                                if (!data) continue; // Skip empty data
+                                if (!data) continue;
 
                                 try {
                                     const parsed = JSON.parse(data);
 
-                                    // Handle different event types
                                     if (parsed.type === 'content_block_delta') {
                                         const text = parsed.delta?.text || '';
                                         fullResponse += text;
                                         this.updateMessage(contentDiv, fullResponse);
                                     } else if (parsed.type === 'message_stop') {
-                                        console.log('🛑 Received message_stop event');
                                         streamComplete = true;
-                                        // Don't break here, let the stream naturally end
                                     }
                                 } catch (e) {
-                                    // Only log actual parse errors, not incomplete chunks
-                                    console.warn('⚠️ Failed to parse:', data.substring(0, 50), e.message);
+                                    // Ignore JSON parse errors for incomplete chunks
                                 }
                             }
                         }
 
                         // Exit the while loop if we received stop signal
                         if (streamComplete) {
-                            console.log('🏁 Breaking out of stream loop');
                             break;
                         }
                     }
                 } catch (error) {
-                    console.error('❌ Error in streamClaude:', error);
+                    console.error('Error in streamClaude:', error);
                     throw error;
                 } finally {
-                    console.log('🏁 Stream complete:', streamComplete, 'Response length:', fullResponse.length);
-
                     // Always remove streaming class and save message
                     contentDiv.parentElement.classList.remove('streaming');
 
