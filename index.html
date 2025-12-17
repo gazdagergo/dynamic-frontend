@@ -334,7 +334,7 @@
                                 if (data === '[DONE]') {
                                     console.log('🏁 Received [DONE] signal');
                                     streamComplete = true;
-                                    continue;
+                                    break; // Exit the for loop
                                 }
 
                                 if (!data) continue; // Skip empty data
@@ -350,12 +350,19 @@
                                     } else if (parsed.type === 'message_stop') {
                                         console.log('🛑 Received message_stop event');
                                         streamComplete = true;
+                                        // Don't break here, let the stream naturally end
                                     }
                                 } catch (e) {
                                     // Only log actual parse errors, not incomplete chunks
                                     console.warn('⚠️ Failed to parse:', data.substring(0, 50), e.message);
                                 }
                             }
+                        }
+
+                        // Exit the while loop if we received stop signal
+                        if (streamComplete) {
+                            console.log('🏁 Breaking out of stream loop');
+                            break;
                         }
                     }
                 } catch (error) {
