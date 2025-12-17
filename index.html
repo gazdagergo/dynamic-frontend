@@ -281,6 +281,7 @@
                 const contentDiv = this.addMessage('assistant', '', true);
                 let fullResponse = '';
                 let streamComplete = false;
+                let buffer = ''; // Buffer for incomplete lines
 
                 try {
                     const response = await fetch('/api/chat', {
@@ -311,16 +312,22 @@
                             break;
                         }
 
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split('\n');
+                        // Add to buffer and process complete lines
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+
+                        // Keep the last incomplete line in buffer
+                        buffer = lines.pop() || '';
 
                         for (const line of lines) {
                             if (line.startsWith('data: ')) {
-                                const data = line.slice(6);
+                                const data = line.slice(6).trim();
                                 if (data === '[DONE]') {
                                     streamComplete = true;
                                     continue;
                                 }
+
+                                if (!data) continue; // Skip empty data
 
                                 try {
                                     const parsed = JSON.parse(data);
@@ -334,8 +341,8 @@
                                         streamComplete = true;
                                     }
                                 } catch (e) {
-                                    // Ignore JSON parse errors for incomplete chunks
-                                    console.debug('Parse error:', e);
+                                    // Only log actual parse errors, not incomplete chunks
+                                    console.warn('Failed to parse:', data.substring(0, 50), e.message);
                                 }
                             }
                         }
