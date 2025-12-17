@@ -12,10 +12,25 @@ This is a POC for a chat application where:
 
 ## Tech Stack
 
-- **No build process** - Pure HTML, CSS, and JavaScript
-- **AlpineJS** - Lightweight reactivity (added in Iteration 2)
-- **Tailwind CSS** - Styling (added in Iteration 5)
-- **Claude API** - AI backend with streaming support
+- **Frontend:** Pure HTML, CSS, and JavaScript (no build process)
+- **Backend:** Python serverless functions (Vercel)
+- **Deployment:** Vercel
+- **AI:** Claude API with streaming support
+- **Future:** AlpineJS (Iteration 2), Tailwind CSS (Iteration 5)
+
+## Project Structure
+
+```
+dynamic-frontend/
+├── public/
+│   └── index.html          # Frontend application
+├── api/
+│   └── chat.py             # Serverless API proxy
+├── vercel.json             # Vercel deployment config
+├── requirements.txt        # Python dependencies
+├── .env.example            # Environment variables template
+└── README.md
+```
 
 ## Iterations
 
@@ -24,18 +39,42 @@ This is a POC for a chat application where:
 **What's Working:**
 - Text-only chat interface
 - Claude API integration with streaming
+- Backend API proxy (solves CORS)
 - Message history
 - User and assistant messages
-- API key management (stored locally)
+- Vercel deployment ready
 
-**How to Test:**
-1. Open `index.html` in a browser
-2. Enter your Anthropic API key (starts with `sk-ant-`)
-3. Start chatting with Claude
-4. Messages stream in real-time
+**How to Test Locally:**
+
+Unfortunately, local testing requires the API key to be in environment variables, which is hard to set up locally. The recommended approach is to deploy to Vercel and test there.
+
+**How to Deploy:**
+
+1. **Fork/Clone this repo**
+
+2. **Deploy to Vercel:**
+   ```bash
+   # Install Vercel CLI
+   npm i -g vercel
+
+   # Deploy
+   vercel
+   ```
+
+3. **Set Environment Variable in Vercel:**
+   - Go to your project in Vercel dashboard
+   - Settings → Environment Variables
+   - Add: `ANTHROPIC_API_KEY` = `sk-ant-...` (your API key)
+   - Redeploy
+
+4. **Test:**
+   - Visit your Vercel URL
+   - Start chatting with Claude
+   - Messages stream in real-time
 
 **Files:**
-- `index.html` - Complete working chat app
+- `public/index.html` - Frontend application
+- `api/chat.py` - Backend API proxy (handles CORS and API key)
 
 ---
 
