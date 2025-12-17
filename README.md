@@ -22,8 +22,7 @@ This is a POC for a chat application where:
 
 ```
 dynamic-frontend/
-├── public/
-│   └── index.html          # Frontend application
+├── index.html              # Frontend application (root)
 ├── api/
 │   └── chat.py             # Serverless API proxy
 ├── vercel.json             # Vercel deployment config
