@@ -2,32 +2,76 @@
 
 A conversational interface where Claude dynamically generates UI components based on the conversation context.
 
-## Project Overview
+## Project Vision
 
-This project demonstrates a chat application where:
-- The UI is **dynamically generated** by Claude AI
-- No hardcoded dialogue flows
-- Interactive components (buttons, forms, etc.) are generated on-the-fly
-- User interactions become part of the conversation
-
-## Development Approach
-
-This project is being developed **iteratively** with each iteration as a separate pull request:
-
-1. **Iteration 1:** Basic text chat with Claude API
-2. **Iteration 2:** Component rendering system with JSON parsing
-3. **Iteration 3:** Button components
-4. **Iteration 4:** Form components (inputs, checkboxes, radio buttons)
-5. **Iteration 5:** Tailwind CSS integration
-6. **Iteration 6:** Rich media (images, markdown, HTML)
+This is a POC for a chat application where:
+- The UI is **dynamically generated** by Claude (no hardcoded dialogue UI)
+- Users can interact through **buttons, checkboxes, inputs, and text**
+- Each response can mix text and interactive UI components
+- User interactions (clicks, selections) become part of the conversation
 
 ## Tech Stack
 
-- Pure HTML, CSS, and JavaScript (no build process)
-- Claude API for AI interactions
-- AlpineJS for reactivity
-- Tailwind CSS for styling
+- **No build process** - Pure HTML, CSS, and JavaScript
+- **AlpineJS** - Lightweight reactivity (added in Iteration 2)
+- **Tailwind CSS** - Styling (added in Iteration 5)
+- **Claude API** - AI backend with streaming support
 
-## Getting Started
+## Iterations
 
-Check the pull requests to see each iteration and its features!
+### ✅ Iteration 1: Basic Text Chat (CURRENT)
+
+**What's Working:**
+- Text-only chat interface
+- Claude API integration with streaming
+- Message history
+- User and assistant messages
+- API key management (stored locally)
+
+**How to Test:**
+1. Open `index.html` in a browser
+2. Enter your Anthropic API key (starts with `sk-ant-`)
+3. Start chatting with Claude
+4. Messages stream in real-time
+
+**Files:**
+- `index.html` - Complete working chat app
+
+---
+
+### 🔲 Iteration 2: Component Rendering System
+
+**Planned Features:**
+- JSON response parsing
+- Component registry and factory
+- System prompt for structured output
+- First dynamic component: button
+- User action tracking
+
+**Architecture:**
+```javascript
+// Claude returns:
+{
+  "message": "Would you like to start?",
+  "components": [
+    {"type": "button", "label": "Start Quiz", "value": "start"}
+  ]
+}
+```
+
+---
+
+### 🔲 Iteration 3: Button Components
+
+**Planned Features:**
+- `button` component
+- `button-group` component
+- Click handlers
+- Visual feedback
+
+**Example Use Case:**
+```
+Assistant: "Let's start a quiz!"
+[Button: Start Quiz]
+
+User clicks button →
