@@ -40,6 +40,8 @@ class handler(BaseHTTPRequestHandler):
                 self.send_header('Content-Type', 'text/event-stream')
                 self.send_header('Cache-Control', 'no-cache')
                 self.send_header('Connection', 'keep-alive')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('X-Accel-Buffering', 'no')
                 self.end_headers()
 
                 # Stream response back to client
@@ -48,7 +50,10 @@ class handler(BaseHTTPRequestHandler):
                     if not chunk:
                         break
                     self.wfile.write(chunk)
-                    self.wfile.flush()
+                    try:
+                        self.wfile.flush()
+                    except:
+                        break
 
         except urllib.error.HTTPError as e:
             error_body = e.read().decode('utf-8')
