@@ -2,32 +2,114 @@
 
 A conversational interface where Claude dynamically generates UI components based on the conversation context.
 
-## Project Overview
+## Project Vision
 
-This project demonstrates a chat application where:
-- The UI is **dynamically generated** by Claude AI
-- No hardcoded dialogue flows
-- Interactive components (buttons, forms, etc.) are generated on-the-fly
-- User interactions become part of the conversation
-
-## Development Approach
-
-This project is being developed **iteratively** with each iteration as a separate pull request:
-
-1. **Iteration 1:** Basic text chat with Claude API
-2. **Iteration 2:** Component rendering system with JSON parsing
-3. **Iteration 3:** Button components
-4. **Iteration 4:** Form components (inputs, checkboxes, radio buttons)
-5. **Iteration 5:** Tailwind CSS integration
-6. **Iteration 6:** Rich media (images, markdown, HTML)
+This is a POC for a chat application where:
+- The UI is **dynamically generated** by Claude (no hardcoded dialogue UI)
+- Users can interact through **buttons, checkboxes, inputs, and text**
+- Each response can mix text and interactive UI components
+- User interactions (clicks, selections) become part of the conversation
 
 ## Tech Stack
 
-- Pure HTML, CSS, and JavaScript (no build process)
-- Claude API for AI interactions
-- AlpineJS for reactivity
-- Tailwind CSS for styling
+- **Frontend:** Pure HTML, CSS, and JavaScript (no build process)
+- **Backend:** Python serverless functions (Vercel)
+- **Deployment:** Vercel
+- **AI:** Claude API with streaming support
+- **Future:** AlpineJS (Iteration 2), Tailwind CSS (Iteration 5)
 
-## Getting Started
+## Project Structure
 
-Check the pull requests to see each iteration and its features!
+```
+dynamic-frontend/
+├── index.html              # Frontend application (root)
+├── api/
+│   └── chat.py             # Serverless API proxy
+├── vercel.json             # Vercel deployment config
+├── requirements.txt        # Python dependencies
+├── .env.example            # Environment variables template
+└── README.md
+```
+
+## Iterations
+
+### ✅ Iteration 1: Basic Text Chat (CURRENT)
+
+**What's Working:**
+- Text-only chat interface
+- Claude API integration with streaming
+- Backend API proxy (solves CORS)
+- Message history
+- User and assistant messages
+- Vercel deployment ready
+
+**How to Test Locally:**
+
+Unfortunately, local testing requires the API key to be in environment variables, which is hard to set up locally. The recommended approach is to deploy to Vercel and test there.
+
+**How to Deploy:**
+
+1. **Fork/Clone this repo**
+
+2. **Deploy to Vercel:**
+   ```bash
+   # Install Vercel CLI
+   npm i -g vercel
+
+   # Deploy
+   vercel
+   ```
+
+3. **Set Environment Variable in Vercel:**
+   - Go to your project in Vercel dashboard
+   - Settings → Environment Variables
+   - Add: `ANTHROPIC_API_KEY` = `sk-ant-...` (your API key)
+   - Redeploy
+
+4. **Test:**
+   - Visit your Vercel URL
+   - Start chatting with Claude
+   - Messages stream in real-time
+
+**Files:**
+- `public/index.html` - Frontend application
+- `api/chat.py` - Backend API proxy (handles CORS and API key)
+
+---
+
+### 🔲 Iteration 2: Component Rendering System
+
+**Planned Features:**
+- JSON response parsing
+- Component registry and factory
+- System prompt for structured output
+- First dynamic component: button
+- User action tracking
+
+**Architecture:**
+```javascript
+// Claude returns:
+{
+  "message": "Would you like to start?",
+  "components": [
+    {"type": "button", "label": "Start Quiz", "value": "start"}
+  ]
+}
+```
+
+---
+
+### 🔲 Iteration 3: Button Components
+
+**Planned Features:**
+- `button` component
+- `button-group` component
+- Click handlers
+- Visual feedback
+
+**Example Use Case:**
+```
+Assistant: "Let's start a quiz!"
+[Button: Start Quiz]
+
+User clicks button →

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic UI Chat - Iteration 1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #fff;
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        .header p {
+            font-size: 0.875rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 0.75rem;
+            max-width: 80%;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: #007bff;
+        }
+
+        .message.assistant .message-avatar {
+            background: #6c757d;
+        }
+
+        .message-content {
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: #007bff;
+            color: white;
+        }
+
+        .message.assistant.streaming .message-content {
+            border-bottom: 2px solid #007bff;
+        }
+
+        .input-container {
+            padding: 1rem;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-container textarea {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+            font-size: 1rem;
+            min-height: 44px;
+            max-height: 120px;
+        }
+
+        .input-container textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .input-container button {
+            padding: 0.75rem 1.5rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .input-container button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        .input-container button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin: 0.5rem;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #007bff;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Dynamic UI Chat - Iteration 1</h1>
+        <p>Text-only chat with Claude API (Deployed on Vercel)</p>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <!-- Messages will be added here -->
+    </div>
+
+    <div class="input-container">
+        <textarea
+            id="messageInput"
+            placeholder="Type your message..."
+            rows="1"
+            onkeydown="app.handleKeyDown(event)"
+        ></textarea>
+        <button id="sendButton" onclick="app.sendMessage()">Send</button>
+    </div>
+
+    <script>
+        const app = {
+            messages: [],
+            isStreaming: false,
+
+            init() {
+                // Add welcome message
+                this.addMessage('assistant', 'Hello! I\'m ready to chat. How can I help you today?');
+
+                // Auto-resize textarea
+                const textarea = document.getElementById('messageInput');
+                textarea.addEventListener('input', function() {
+                    this.style.height = 'auto';
+                    this.style.height = this.scrollHeight + 'px';
+                });
+            },
+
+            handleKeyDown(event) {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    this.sendMessage();
+                }
+            },
+
+            addMessage(role, content, streaming = false) {
+                const container = document.getElementById('chatContainer');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role} ${streaming ? 'streaming' : ''}`;
+                messageDiv.setAttribute('data-role', role);
+
+                const avatar = document.createElement('div');
+                avatar.className = 'message-avatar';
+                avatar.textContent = role === 'user' ? 'U' : 'A';
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+
+                messageDiv.appendChild(avatar);
+                messageDiv.appendChild(contentDiv);
+                container.appendChild(messageDiv);
+
+                // Scroll to bottom
+                container.scrollTop = container.scrollHeight;
+
+                return contentDiv;
+            },
+
+            updateMessage(contentDiv, text) {
+                contentDiv.textContent = text;
+                const container = document.getElementById('chatContainer');
+                container.scrollTop = container.scrollHeight;
+            },
+
+            showError(message) {
+                const container = document.getElementById('chatContainer');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = `Error: ${message}`;
+                container.appendChild(errorDiv);
+                container.scrollTop = container.scrollHeight;
+            },
+
+            async sendMessage() {
+                const input = document.getElementById('messageInput');
+                const message = input.value.trim();
+
+                if (!message || this.isStreaming) return;
+
+                // Add user message
+                this.addMessage('user', message);
+                this.messages.push({ role: 'user', content: message });
+
+                // Clear input
+                input.value = '';
+                input.style.height = 'auto';
+
+                // Disable input while streaming
+                this.isStreaming = true;
+                document.getElementById('sendButton').disabled = true;
+                input.disabled = true;
+
+                try {
+                    await this.streamClaude();
+                } catch (error) {
+                    this.showError(error.message);
+                } finally {
+                    this.isStreaming = false;
+                    document.getElementById('sendButton').disabled = false;
+                    input.disabled = false;
+                    input.focus();
+                }
+            },
+
+            async streamClaude() {
+                const contentDiv = this.addMessage('assistant', '', true);
+                let fullResponse = '';
+                let streamComplete = false;
+                let buffer = ''; // Buffer for incomplete lines
+
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'claude-3-haiku-20240307',
+                            max_tokens: 4096,
+                            messages: this.messages,
+                            stream: true
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error?.message || 'API request failed');
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+
+                        if (done) {
+                            streamComplete = true;
+                            break;
+                        }
+
+                        // Add to buffer and process complete lines
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+
+                        // Keep the last incomplete line in buffer
+                        buffer = lines.pop() || '';
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const data = line.slice(6).trim();
+                                if (data === '[DONE]') {
+                                    streamComplete = true;
+                                    break;
+                                }
+
+                                if (!data) continue;
+
+                                try {
+                                    const parsed = JSON.parse(data);
+
+                                    if (parsed.type === 'content_block_delta') {
+                                        const text = parsed.delta?.text || '';
+                                        fullResponse += text;
+                                        this.updateMessage(contentDiv, fullResponse);
+                                    } else if (parsed.type === 'message_stop') {
+                                        streamComplete = true;
+                                    }
+                                } catch (e) {
+                                    // Ignore JSON parse errors for incomplete chunks
+                                }
+                            }
+                        }
+
+                        // Exit the while loop if we received stop signal
+                        if (streamComplete) {
+                            break;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error in streamClaude:', error);
+                    throw error;
+                } finally {
+                    // Always remove streaming class and save message
+                    contentDiv.parentElement.classList.remove('streaming');
+
+                    if (fullResponse) {
+                        this.messages.push({ role: 'assistant', content: fullResponse });
+                    }
+                }
+            }
+        };
+
+        // Initialize app when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>
