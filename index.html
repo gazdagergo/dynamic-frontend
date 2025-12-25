@@ -295,23 +295,35 @@ You: Hello! How can I help you today? (plain text is fine here)`;
                 if (typeof content === 'string') {
                     contentDiv.textContent = content;
                 } else if (content && typeof content === 'object') {
+                    console.log('📦 addMessage received object:', content);
+                    console.log('Has message:', !!content.message);
+                    console.log('Has components:', !!content.components);
+                    console.log('Components is array:', Array.isArray(content.components));
+
                     // Structured content with components
                     if (content.message) {
                         const textDiv = document.createElement('div');
                         textDiv.textContent = content.message;
                         contentDiv.appendChild(textDiv);
+                        console.log('✅ Added message text');
                     }
 
                     if (content.components && Array.isArray(content.components)) {
+                        console.log('🔧 Creating components container for', content.components.length, 'components');
                         const componentsContainer = document.createElement('div');
                         componentsContainer.className = 'component-container';
-                        content.components.forEach(componentSpec => {
+                        content.components.forEach((componentSpec, index) => {
+                            console.log(`  Rendering component ${index}:`, componentSpec);
                             const element = this.renderComponent(componentSpec);
                             if (element) {
                                 componentsContainer.appendChild(element);
+                                console.log(`  ✅ Component ${index} rendered`);
+                            } else {
+                                console.warn(`  ❌ Component ${index} failed to render`);
                             }
                         });
                         contentDiv.appendChild(componentsContainer);
+                        console.log('✅ Components container added to message');
                     }
                 }
 
@@ -524,10 +536,13 @@ You: Hello! How can I help you today? (plain text is fine here)`;
                                 // Validate it has the expected structure
                                 if (parsedContent && (parsedContent.message || parsedContent.components)) {
                                     console.log('Valid structure, rendering components');
+                                    console.log('About to remove old message and add new one with:', parsedContent);
                                     // Replace the streaming text with structured content
                                     const messageElement = contentDiv.parentElement;
                                     messageElement.remove();
+                                    console.log('Old message removed, calling addMessage...');
                                     this.addMessage('assistant', parsedContent);
+                                    console.log('addMessage completed');
 
                                     // Save the raw JSON string to messages
                                     this.messages.push({ role: 'assistant', content: fullResponse });
