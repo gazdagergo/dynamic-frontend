@@ -240,6 +240,8 @@ AVAILABLE COMPONENTS:
 RULES:
 - Use plain text for normal conversation
 - Use JSON when you want to offer interactive choices or actions
+- CRITICAL: When returning JSON, return ONLY the JSON object - no extra text before or after!
+- If you want to add explanatory text with components, put it in the "message" field inside the JSON
 - The "value" is what gets sent as the user's message when they click
 - Keep button labels clear and concise
 - When user says "show me a button", demonstrate with JSON
@@ -250,6 +252,10 @@ You: {"message": "Here's a button you can click:", "components": [{"type": "butt
 
 User: "I want to start something"
 You: {"message": "What would you like to do?", "components": [{"type": "button", "label": "Start a quiz", "value": "start_quiz"}, {"type": "button", "label": "Just chat", "value": "just_chat"}]}
+
+User: "Start a quiz"
+CORRECT: {"message": "What is the capital of France?", "components": [{"type": "button", "label": "Paris", "value": "correct"}, {"type": "button", "label": "London", "value": "incorrect"}]}
+WRONG: Okay, here's a quiz question:\n\n{"message": "What is...", ...}  ← DON'T add text outside JSON!
 
 User: "Hello"
 You: Hello! How can I help you today? (plain text is fine here)`;
@@ -525,12 +531,18 @@ You: Hello! How can I help you today? (plain text is fine here)`;
                         const trimmed = fullResponse.trim();
 
                         console.log('Full response:', trimmed.substring(0, 100));
-                        console.log('Starts with {:', trimmed.startsWith('{'));
-                        console.log('Ends with }:', trimmed.endsWith('}'));
 
-                        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+                        // Look for JSON object in the response (even if there's text before/after)
+                        const firstBrace = trimmed.indexOf('{');
+                        const lastBrace = trimmed.lastIndexOf('}');
+
+                        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                            const jsonCandidate = trimmed.substring(firstBrace, lastBrace + 1);
+                            console.log('Found JSON candidate from', firstBrace, 'to', lastBrace);
+                            console.log('JSON candidate:', jsonCandidate.substring(0, 100));
+
                             try {
-                                parsedContent = JSON.parse(trimmed);
+                                parsedContent = JSON.parse(jsonCandidate);
                                 console.log('Parsed JSON successfully:', parsedContent);
 
                                 // Validate it has the expected structure
@@ -545,7 +557,7 @@ You: Hello! How can I help you today? (plain text is fine here)`;
                                     console.log('addMessage completed');
 
                                     // Save the raw JSON string to messages
-                                    this.messages.push({ role: 'assistant', content: fullResponse });
+                                    this.messages.push({ role: 'assistant', content: jsonCandidate });
                                 } else {
                                     // Invalid structure, treat as plain text
                                     console.warn('Invalid JSON structure:', parsedContent);
@@ -556,6 +568,8 @@ You: Hello! How can I help you today? (plain text is fine here)`;
                                 console.log('Response is not valid JSON, treating as plain text:', e.message);
                                 parsedContent = null;
                             }
+                        } else {
+                            console.log('No JSON object found in response');
                         }
 
                         // If not parsed as JSON, save as plain text
