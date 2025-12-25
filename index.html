@@ -512,12 +512,18 @@ You: Hello! How can I help you today? (plain text is fine here)`;
                         let parsedContent = null;
                         const trimmed = fullResponse.trim();
 
+                        console.log('Full response:', trimmed.substring(0, 100));
+                        console.log('Starts with {:', trimmed.startsWith('{'));
+                        console.log('Ends with }:', trimmed.endsWith('}'));
+
                         if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
                             try {
                                 parsedContent = JSON.parse(trimmed);
+                                console.log('Parsed JSON successfully:', parsedContent);
 
                                 // Validate it has the expected structure
                                 if (parsedContent && (parsedContent.message || parsedContent.components)) {
+                                    console.log('Valid structure, rendering components');
                                     // Replace the streaming text with structured content
                                     const messageElement = contentDiv.parentElement;
                                     messageElement.remove();
@@ -527,17 +533,19 @@ You: Hello! How can I help you today? (plain text is fine here)`;
                                     this.messages.push({ role: 'assistant', content: fullResponse });
                                 } else {
                                     // Invalid structure, treat as plain text
+                                    console.warn('Invalid JSON structure:', parsedContent);
                                     parsedContent = null;
                                 }
                             } catch (e) {
                                 // JSON parse failed, treat as plain text
-                                console.log('Response is not valid JSON, treating as plain text');
+                                console.log('Response is not valid JSON, treating as plain text:', e.message);
                                 parsedContent = null;
                             }
                         }
 
                         // If not parsed as JSON, save as plain text
                         if (!parsedContent) {
+                            console.log('Saving as plain text');
                             this.messages.push({ role: 'assistant', content: fullResponse });
                         }
                     }
