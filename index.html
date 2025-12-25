@@ -161,12 +161,48 @@
             0%, 100% { opacity: 0.4; }
             50% { opacity: 1; }
         }
+
+        /* Component Styles */
+        .component-container {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .component-button {
+            padding: 0.5rem 1rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .component-button:hover:not(:disabled) {
+            background: #0056b3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .component-button:active {
+            transform: translateY(0);
+        }
+
+        .component-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Dynamic UI Chat - Iteration 1</h1>
-        <p>Text-only chat with Claude API (Deployed on Vercel)</p>
+        <h1>Dynamic UI Chat - Iteration 2</h1>
+        <p>Dynamic UI components powered by Claude (Try: "Show me a button")</p>
     </div>
 
     <div class="chat-container" id="chatContainer">
@@ -184,9 +220,50 @@
     </div>
 
     <script>
+        // System prompt for dynamic UI generation
+        const SYSTEM_PROMPT = `You are an AI assistant that can generate dynamic UI components in your responses.
+
+When appropriate, you can respond with JSON to create interactive UI elements. You can return either plain text OR JSON.
+
+JSON FORMAT:
+{
+  "message": "Your text message (optional)",
+  "components": [
+    {"type": "button", "label": "Button Text", "value": "value_when_clicked"}
+  ]
+}
+
+AVAILABLE COMPONENTS:
+- "button": A clickable button
+  Example: {"type": "button", "label": "Start Quiz", "value": "start_quiz"}
+
+RULES:
+- Use plain text for normal conversation
+- Use JSON when you want to offer interactive choices or actions
+- CRITICAL: When returning JSON, return ONLY the JSON object - no extra text before or after!
+- If you want to add explanatory text with components, put it in the "message" field inside the JSON
+- The "value" is what gets sent as the user's message when they click
+- Keep button labels clear and concise
+- When user says "show me a button", demonstrate with JSON
+
+EXAMPLES:
+User: "Show me a button"
+You: {"message": "Here's a button you can click:", "components": [{"type": "button", "label": "Click Me", "value": "button_clicked"}]}
+
+User: "I want to start something"
+You: {"message": "What would you like to do?", "components": [{"type": "button", "label": "Start a quiz", "value": "start_quiz"}, {"type": "button", "label": "Just chat", "value": "just_chat"}]}
+
+User: "Start a quiz"
+CORRECT: {"message": "What is the capital of France?", "components": [{"type": "button", "label": "Paris", "value": "correct"}, {"type": "button", "label": "London", "value": "incorrect"}]}
+WRONG: Okay, here's a quiz question:\n\n{"message": "What is...", ...}  ← DON'T add text outside JSON!
+
+User: "Hello"
+You: Hello! How can I help you today? (plain text is fine here)`;
+
         const app = {
             messages: [],
             isStreaming: false,
+            systemPrompt: SYSTEM_PROMPT,
 
             init() {
                 // Add welcome message
@@ -219,7 +296,42 @@
 
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'message-content';
-                contentDiv.textContent = content;
+
+                // Handle both plain text and structured content
+                if (typeof content === 'string') {
+                    contentDiv.textContent = content;
+                } else if (content && typeof content === 'object') {
+                    console.log('📦 addMessage received object:', content);
+                    console.log('Has message:', !!content.message);
+                    console.log('Has components:', !!content.components);
+                    console.log('Components is array:', Array.isArray(content.components));
+
+                    // Structured content with components
+                    if (content.message) {
+                        const textDiv = document.createElement('div');
+                        textDiv.textContent = content.message;
+                        contentDiv.appendChild(textDiv);
+                        console.log('✅ Added message text');
+                    }
+
+                    if (content.components && Array.isArray(content.components)) {
+                        console.log('🔧 Creating components container for', content.components.length, 'components');
+                        const componentsContainer = document.createElement('div');
+                        componentsContainer.className = 'component-container';
+                        content.components.forEach((componentSpec, index) => {
+                            console.log(`  Rendering component ${index}:`, componentSpec);
+                            const element = this.renderComponent(componentSpec);
+                            if (element) {
+                                componentsContainer.appendChild(element);
+                                console.log(`  ✅ Component ${index} rendered`);
+                            } else {
+                                console.warn(`  ❌ Component ${index} failed to render`);
+                            }
+                        });
+                        contentDiv.appendChild(componentsContainer);
+                        console.log('✅ Components container added to message');
+                    }
+                }
 
                 messageDiv.appendChild(avatar);
                 messageDiv.appendChild(contentDiv);
@@ -235,6 +347,60 @@
                 contentDiv.textContent = text;
                 const container = document.getElementById('chatContainer');
                 container.scrollTop = container.scrollHeight;
+            },
+
+            // Component factory methods
+            renderComponent(spec) {
+                if (!spec || !spec.type) {
+                    console.warn('Invalid component spec:', spec);
+                    return null;
+                }
+
+                switch (spec.type) {
+                    case 'button':
+                        return this.createButton(spec);
+                    default:
+                        console.warn('Unknown component type:', spec.type);
+                        return null;
+                }
+            },
+
+            createButton(config) {
+                if (!config.label) {
+                    console.warn('Button component missing label:', config);
+                    return null;
+                }
+
+                const button = document.createElement('button');
+                button.className = 'component-button';
+                button.textContent = config.label;
+                button.onclick = () => this.sendComponentValue(config.value || config.label, config.label);
+                return button;
+            },
+
+            sendComponentValue(value, label) {
+                // Disable all component buttons in this message to prevent double-clicks
+                const allButtons = document.querySelectorAll('.component-button');
+                allButtons.forEach(btn => btn.disabled = true);
+
+                // Send the value as a user message
+                this.addMessage('user', label);
+                this.messages.push({ role: 'user', content: value });
+
+                // Get response from Claude
+                this.isStreaming = true;
+                document.getElementById('sendButton').disabled = true;
+                document.getElementById('messageInput').disabled = true;
+
+                this.streamClaude()
+                    .catch(error => {
+                        this.showError(error.message);
+                    })
+                    .finally(() => {
+                        this.isStreaming = false;
+                        document.getElementById('sendButton').disabled = false;
+                        document.getElementById('messageInput').disabled = false;
+                    });
             },
 
             showError(message) {
@@ -292,6 +458,7 @@
                         body: JSON.stringify({
                             model: 'claude-3-haiku-20240307',
                             max_tokens: 4096,
+                            system: this.systemPrompt,
                             messages: this.messages,
                             stream: true
                         })
@@ -355,11 +522,61 @@
                     console.error('Error in streamClaude:', error);
                     throw error;
                 } finally {
-                    // Always remove streaming class and save message
+                    // Always remove streaming class
                     contentDiv.parentElement.classList.remove('streaming');
 
                     if (fullResponse) {
-                        this.messages.push({ role: 'assistant', content: fullResponse });
+                        // Try to parse as JSON for structured responses
+                        let parsedContent = null;
+                        const trimmed = fullResponse.trim();
+
+                        console.log('Full response:', trimmed.substring(0, 100));
+
+                        // Look for JSON object in the response (even if there's text before/after)
+                        const firstBrace = trimmed.indexOf('{');
+                        const lastBrace = trimmed.lastIndexOf('}');
+
+                        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                            const jsonCandidate = trimmed.substring(firstBrace, lastBrace + 1);
+                            console.log('Found JSON candidate from', firstBrace, 'to', lastBrace);
+                            console.log('JSON candidate:', jsonCandidate.substring(0, 100));
+
+                            try {
+                                parsedContent = JSON.parse(jsonCandidate);
+                                console.log('Parsed JSON successfully:', parsedContent);
+
+                                // Validate it has the expected structure
+                                if (parsedContent && (parsedContent.message || parsedContent.components)) {
+                                    console.log('Valid structure, rendering components');
+                                    console.log('About to remove old message and add new one with:', parsedContent);
+                                    // Replace the streaming text with structured content
+                                    const messageElement = contentDiv.parentElement;
+                                    messageElement.remove();
+                                    console.log('Old message removed, calling addMessage...');
+                                    this.addMessage('assistant', parsedContent);
+                                    console.log('addMessage completed');
+
+                                    // Save the raw JSON string to messages
+                                    this.messages.push({ role: 'assistant', content: jsonCandidate });
+                                } else {
+                                    // Invalid structure, treat as plain text
+                                    console.warn('Invalid JSON structure:', parsedContent);
+                                    parsedContent = null;
+                                }
+                            } catch (e) {
+                                // JSON parse failed, treat as plain text
+                                console.log('Response is not valid JSON, treating as plain text:', e.message);
+                                parsedContent = null;
+                            }
+                        } else {
+                            console.log('No JSON object found in response');
+                        }
+
+                        // If not parsed as JSON, save as plain text
+                        if (!parsedContent) {
+                            console.log('Saving as plain text');
+                            this.messages.push({ role: 'assistant', content: fullResponse });
+                        }
                     }
                 }
             }
